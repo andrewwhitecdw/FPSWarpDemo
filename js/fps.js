@@ -159,9 +159,11 @@ var showResults = function(){
   const lowLatCT = avgCompTimeResults[lowLat]; const highLatCT = avgCompTimeResults[highLat]; const warpCT = avgCompTimeResults[warp];
   const lowLatAcc = accuracyResults[lowLat]; const highLatAcc = accuracyResults[highLat]; const warpAcc = accuracyResults[warp];
 
-  const latDiff = frames_to_delay * frameTimes.avg();
+  const highLatMs = parseFloat(highLat);
+  const highLatFrames = Math.round(highLatMs / frameTimes.avg());
+  const latDiff = highLatMs;
   lowlatresult.innerHTML = `<h1>Minimum Latency</h1><p>&nbsp;</p><p>Avg Completion Time: ${lowLatCT.toFixed(3)} s</p><p>Accuracy: ${lowLatAcc.toFixed(1)}%</p>`;
-  highlatresult.innerHTML = `<h1>${frames_to_delay} frames of Latency</h1><h2>(Average latency of ${latDiff.toFixed(1)}ms)</h2><p>Avg Completion Time: ${highLatCT.toFixed(3)} s</p><p>Accuracy: ${highLatAcc.toFixed(1)}%</p>`;
+  highlatresult.innerHTML = `<h1>${highLatFrames} frames of Latency</h1><h2>(Average latency of ${latDiff.toFixed(1)}ms)</h2><p>Avg Completion Time: ${highLatCT.toFixed(3)} s</p><p>Accuracy: ${highLatAcc.toFixed(1)}%</p>`;
   warpresult.innerHTML = `<h1>Late Warp</h1><p>&nbsp;</p><p>Avg Completion Time: ${warpCT.toFixed(3)} s</p><p>Accuracy: ${warpAcc.toFixed(1)}%</p>`;
   
   const lat_dt = 1000 * (highLatCT - lowLatCT); const lat_dAcc = lowLatAcc - highLatAcc;
@@ -531,7 +533,7 @@ THREE.FirstPersonControls = function ( camera, scene, jumpHeight = config.player
   var scope = this;
   scope.scene = scene;
   scope.height = height;
-  scope.jumpHeight = scope.height + jumpHeight;
+  scope.jumpHeight = jumpHeight;
   scope.enabled = false;
 
   var canJump = false;
@@ -1403,6 +1405,7 @@ function onWindowResize() {
   const aspect = w / h;
 
   renderer.setSize(w, h);
+  renderedImage.setSize(w, h);
   warpresult.width = w;  warpresult.height = h;
   
   camera.aspect = aspect; 
@@ -1543,8 +1546,14 @@ var makeScene = function(){
   scene.fog = new THREE.Fog( config.scene.fog.color, config.scene.fog.nearDistance, config.scene.fog.farDistance );
   scene.add(camera);
 
+  var wasEnabled = (typeof fpsControls !== 'undefined') && fpsControls.enabled;
+  if (typeof rawInputState !== 'undefined' && rawInputState.enabled) rawInputState.enable(false);
   rawInputState = new RawInputState();
   fpsControls = new THREE.FirstPersonControls( camera );
+  if (wasEnabled) {
+    fpsControls.enabled = true;
+    rawInputState.enable(true);
+  }
   scene.add( fpsControls.getObject() );
 
   var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
